@@ -1,31 +1,7 @@
 var loader, define, requireModule, require, requirejs;
 
-(function(global) {
+(function (global) {
   'use strict';
-
-  var heimdall = global.heimdall;
-  var {
-    define: __define,
-    require: __require,
-    exports: __exports,
-    findModule: __findModule,
-    resolve: __resolve,
-    reify,
-    findDeps,
-    modules,
-    resolveRelative,
-    pendingQueueLength
-  } = heimdall.registerMonitor('loaderjs',
-  'define',
-  'require',
-  'reify',
-  'findDeps',
-  'modules',
-  'exports',
-  'resolve',
-  'resolveRelative',
-  'findModule',
-  'pendingQueueLength');
 
   function dict() {
     var obj = Object.create(null);
@@ -43,9 +19,7 @@ var loader, define, requireModule, require, requirejs;
     requirejs: requirejs
   };
 
-  requirejs = require = requireModule = function(id) {
-    var token = heimdall.start('require');
-    heimdall.increment(__require);
+  requirejs = require = requireModule = function (id) {
     var pending = [];
     var mod = findModule(id, '(require)', pending);
 
@@ -53,12 +27,11 @@ var loader, define, requireModule, require, requirejs;
       pending[i].exports();
     }
 
-    heimdall.stop(token);
     return mod.module.exports;
   };
 
   loader = {
-    noConflict: function(aliases) {
+    noConflict: function (aliases) {
       var oldName, newName;
 
       for (oldName in aliases) {
@@ -82,19 +55,17 @@ var loader, define, requireModule, require, requirejs;
   var uuid = 0;
 
   function unsupportedModule(length) {
-    throw new Error('an unsupported module was defined, expected `define(id, deps, module)` instead got: `' +
-                    length + '` arguments to define`');
+    throw new Error('an unsupported module was defined, expected `define(id, deps, module)` instead got: `' + length + '` arguments to define`');
   }
 
   var defaultDeps = ['require', 'exports', 'module'];
 
   function Module(id, deps, callback, alias) {
-    heimdall.increment(modules);
-    this.uuid      = uuid++;
-    this.id        = id;
-    this.deps      = !deps.length && callback.length ? defaultDeps : deps;
-    this.module    = { exports: {} };
-    this.callback  = callback;
+    this.uuid = uuid++;
+    this.id = id;
+    this.deps = !deps.length && callback.length ? defaultDeps : deps;
+    this.module = { exports: {} };
+    this.callback = callback;
     this.hasExportsAsDep = false;
     this.isAlias = alias;
     this.reified = new Array(deps.length);
@@ -109,23 +80,22 @@ var loader, define, requireModule, require, requirejs;
          finalized : this module executed successfully
      */
     this.state = 'new';
-
   }
 
-  Module.prototype.makeDefaultExport = function() {
+  Module.prototype.makeDefaultExport = function () {
     var exports = this.module.exports;
-    if (exports !== null &&
-        (typeof exports === 'object' || typeof exports === 'function') &&
-          exports['default'] === undefined && Object.isExtensible(exports)) {
+    if (exports !== null && (typeof exports === 'object' || typeof exports === 'function') && exports['default'] === undefined && Object.isExtensible(exports)) {
       exports['default'] = exports;
     }
   };
 
-  Module.prototype.exports = function() {
+  Module.prototype.exports = function () {
     // if finalized, there is no work to do. If reifying, there is a
     // circular dependency so we must return our (partial) exports.
-    if (this.state === 'finalized' || this.state === 'reifying') { return this.module.exports; }
-    heimdall.increment(__exports);
+    if (this.state === 'finalized' || this.state === 'reifying') {
+      return this.module.exports;
+    }
+
 
     if (loader.wrapModules) {
       this.callback = loader.wrapModules(this.id, this.callback);
@@ -136,7 +106,7 @@ var loader, define, requireModule, require, requirejs;
     var result;
     try {
       result = this.callback.apply(this, this.reified);
-    } catch(err) {
+    } catch (err) {
       // we probably have a circular reference where depended on
       // exports haven't been built yet, so return early and
       // it should be ready the next time around (moment.js `makeGetSet`)
@@ -154,13 +124,15 @@ var loader, define, requireModule, require, requirejs;
     return this.module.exports;
   };
 
-  Module.prototype.unsee = function() {
+  Module.prototype.unsee = function () {
     this.state = 'new';
     this.module = { exports: {} };
   };
 
-  Module.prototype.reify = function() {
-    if (this.state === 'reified') { return; }
+  Module.prototype.reify = function () {
+    if (this.state === 'reified') {
+      return;
+    }
     this.state = 'reifying';
     try {
       this.reified = this._reify();
@@ -172,8 +144,7 @@ var loader, define, requireModule, require, requirejs;
     }
   };
 
-  Module.prototype._reify = function() {
-    heimdall.increment(reify);
+  Module.prototype._reify = function () {
     var reified = this.reified.slice();
     for (var i = 0; i < reified.length; i++) {
       var mod = reified[i];
@@ -182,12 +153,11 @@ var loader, define, requireModule, require, requirejs;
     return reified;
   };
 
-  Module.prototype.findDeps = function(pending) {
+  Module.prototype.findDeps = function (pending) {
     if (this.state !== 'new') {
       return;
     }
 
-    heimdall.increment(findDeps);
     this.state = 'pending';
 
     var deps = this.deps;
@@ -208,20 +178,20 @@ var loader, define, requireModule, require, requirejs;
     }
   };
 
-  Module.prototype.makeRequire = function() {
+  Module.prototype.makeRequire = function () {
     var id = this.id;
-    var r = function(dep) {
+    var r = function (dep) {
       return require(resolve(dep, id));
     };
     r['default'] = r;
     r.moduleId = id;
-    r.has = function(dep) {
+    r.has = function (dep) {
       return has(resolve(dep, id));
     };
     return r;
   };
 
-  define = function(id, deps, callback) {
+  define = function (id, deps, callback) {
     var module = registry[id];
 
     // If a module for this id has already been defined and is in any state
@@ -231,15 +201,13 @@ var loader, define, requireModule, require, requirejs;
       return;
     }
 
-    var token = heimdall.start('define');
-    heimdall.increment(__define);
     if (arguments.length < 2) {
       unsupportedModule(arguments.length);
     }
 
     if (!Array.isArray(deps)) {
       callback = deps;
-      deps     =  [];
+      deps = [];
     }
 
     if (callback instanceof Alias) {
@@ -247,10 +215,9 @@ var loader, define, requireModule, require, requirejs;
     } else {
       registry[id] = new Module(id, deps, callback, false);
     }
-    heimdall.stop(token);
   };
 
-  define.exports = function(name, defaultExport) {
+  define.exports = function (name, defaultExport) {
     var module = registry[name];
 
     // If a module for this name has already been defined and is in any state
@@ -266,10 +233,9 @@ var loader, define, requireModule, require, requirejs;
     registry[name] = module;
 
     return module;
-
   };
 
-  function noop() { }
+  function noop() {}
   // we don't support all of AMD
   // define.amd = {};
 
@@ -277,7 +243,7 @@ var loader, define, requireModule, require, requirejs;
     this.id = id;
   }
 
-  define.alias = function(id, target) {
+  define.alias = function (id, target) {
     if (arguments.length === 2) {
       return define(target, new Alias(id));
     }
@@ -290,7 +256,6 @@ var loader, define, requireModule, require, requirejs;
   }
 
   function findModule(id, referrer, pending) {
-    heimdall.increment(__findModule);
     var normalizedId = id.replace(/\.js$/, '');
     var mod = registry[normalizedId] || registry[normalizedId + '/index'];
 
@@ -298,20 +263,22 @@ var loader, define, requireModule, require, requirejs;
       mod = registry[mod.id];
     }
 
-    if (!mod) { missingModule(id, referrer); }
+    if (!mod) {
+      missingModule(id, referrer);
+    }
 
     if (pending && mod.state !== 'pending' && mod.state !== 'finalized') {
       mod.findDeps(pending);
       pending.push(mod);
-      heimdall.increment(pendingQueueLength);
     }
     return mod;
   }
 
   function resolve(child, id) {
-    heimdall.increment(__resolve);
-    if (child.charAt(0) !== '.') { return child; }
-    heimdall.increment(resolveRelative);
+    if (child.charAt(0) !== '.') {
+      return child;
+    }
+
 
     var parts = child.split('/');
     var nameParts = id.split('/');
@@ -327,7 +294,9 @@ var loader, define, requireModule, require, requirejs;
         parentBase.pop();
       } else if (part === '.') {
         continue;
-      } else { parentBase.push(part); }
+      } else {
+        parentBase.push(part);
+      }
     }
 
     return parentBase.join('/');
@@ -340,29 +309,29 @@ var loader, define, requireModule, require, requirejs;
 
   requirejs.entries = requirejs._eak_seen = registry;
   requirejs.has = has;
-  requirejs.unsee = function(id) {
+  requirejs.unsee = function (id) {
     findModule(id, '(unsee)', false).unsee();
   };
 
-  requirejs.clear = function() {
+  requirejs.clear = function () {
     requirejs.entries = requirejs._eak_seen = registry = dict();
     seen = dict();
   };
 
   // This code primes the JS engine for good performance by warming the
   // JIT compiler for these functions.
-  define('foo',      function() {});
-  define('foo/bar',  [], function() {});
-  define('foo/asdf', ['module', 'exports', 'require'], function(module, exports, require) {
+  define('foo', function () {});
+  define('foo/bar', [], function () {});
+  define('foo/asdf', ['module', 'exports', 'require'], function (module, exports, require) {
     if (require.has('foo/bar')) {
       require('foo/bar');
     }
   });
-  define('foo/baz',  [], define.alias('foo'));
-  define('foo/quz',  define.alias('foo'));
+  define('foo/baz', [], define.alias('foo'));
+  define('foo/quz', define.alias('foo'));
   define.alias('foo', 'foo/qux');
-  define('foo/bar',  ['foo', './quz', './baz', './asdf', './bar', '../foo'], function() {});
-  define('foo/main', ['foo/bar'], function() {});
+  define('foo/bar', ['foo', './quz', './baz', './asdf', './bar', '../foo'], function () {});
+  define('foo/main', ['foo/bar'], function () {});
   define.exports('foo/exports', {});
 
   require('foo/exports');
